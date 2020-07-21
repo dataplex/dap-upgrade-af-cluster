@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+FROM_VERSION="11.4.0"
+TO_VERSION="11.5.0"
+FROM_FILE_PATH="~/upgrade/conjur-appliance_$FROM_VERSION.tar.gz"
+TO_FILE_PATH="~/upgrade/conjur-appliance_$TO_VERSION.tar.gz"
+
+MASTER1_INT="172.31.24.124"
+MASTER1_EXT="ec2-34-202-231-193.compute-1.amazonaws.com"
+MASTER2_INT="172.31.31.90"
+MASTER2_EXT="ec2-18-232-149-206.compute-1.amazonaws.com"
+MASTER3_INT="172.31.16.7"
+MASTER3_EXT="ec2-3-92-79-169.compute-1.amazonaws.com"
+
+SSH_KEY=~/.ssh/Demo.pem
+SSH_USER="ec2-user"
+
+CONTAINER_NAME="dap"
+ADMIN_PASS="CyberArk1234#"
+ORG_NAME="dev"
+CLUSTER_NAME="ben_conjur"
+
+function showHeader() {
+	echo "========================================================="
+	echo "---- $1"
+	echo "========================================================="
+}
+
+function combineHealthInfo() {
+        local ip="$1"
+        local health="$(curl -sk https://$ip/health)"
+        local info="$(curl -sk https://$ip/info)"
+
+        jq -n --arg ip "$ip" \
+                --argjson health "$health" \
+                --argjson info "$info" \
+                "{ \"ip\": \"$ip\", \"health\": $health, \"info\": $info }"
+}
+
+function queryAllNodes() {
+	m1r=$(combineHealthInfo "$MASTER1_INT")
+	m2r=$(combineHealthInfo "$MASTER2_INT")
+	m3r=$(combineHealthInfo "$MASTER3_INT")
+	combined=$(echo "$m1r$m2r$m3r" | jq -s '.')
+
+	echo "$combined" | jq "$@"
+}
+

@@ -1,0 +1,20 @@
+---
+- !policy
+  id: conjur
+  body:
+    - !policy
+        id: cluster/{{CLUSTER_NAME}}
+        annotations:
+          ttl: 300
+        body:
+        - !layer
+        - &hosts
+          - !host
+            id: {{MASTER1_HOST}}
+          - !host
+            id: {{MASTER2_HOST}}
+          - !host
+            id: {{MASTER3_HOST}}
+        - !grant
+          role: !layer
+          member: *hosts
